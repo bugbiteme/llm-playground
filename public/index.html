@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Chat Client</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>LLM Chat Client</h1>
+    <p>Enter a custom LLM endpoint, headers, and model parameters to chat.</p>
+  </header>
+
+  <main>
+    <section class="panel config-panel">
+      <h2>LLM Configuration</h2>
+
+      <label>
+        Endpoint URL
+        <input id="endpoint" type="url" placeholder="https://llm.demo.leonlevy.lol/v1/chat/completions" value="https://llm.demo.leonlevy.lol/v1/chat/completions" />
+      </label>
+
+      <div class="headers-section">
+        <div class="section-header">
+          <h3>Headers</h3>
+          <button id="add-header">Add Header</button>
+        </div>
+        <div id="headers"></div>
+      </div>
+
+      <div class="params-grid">
+        <label>
+          Model
+          <input id="model" type="text" placeholder="deepseek-r1-distill-qwen-14b" value="deepseek-r1-distill-qwen-14b" />
+        </label>
+        <label>
+          Max tokens
+          <input id="max_tokens" type="number" min="1" value="50" />
+        </label>
+        <label>
+          Temperature
+          <input id="temperature" type="number" step="0.01" min="0" max="2" value="0.2" />
+        </label>
+        <label>
+          Top P
+          <input id="top_p" type="number" step="0.01" min="0" max="1" value="1" />
+        </label>
+        <label>
+          n
+          <input id="n" type="number" min="1" value="1" />
+        </label>
+        <label>
+          Stop
+          <input id="stop" type="text" placeholder="["\"\n\"]" />
+        </label>
+      </div>
+
+      <label class="full-width">
+        Extra JSON options
+        <textarea id="extra-options" rows="5" placeholder='{"presence_penalty": 0.1, "frequency_penalty": 0.1}'></textarea>
+      </label>
+
+      <div class="button-row">
+        <button id="clear-chat" class="secondary">Clear Chat</button>
+      </div>
+    </section>
+
+    <section class="panel chat-panel">
+      <div class="chat-header">
+        <h2>Chat</h2>
+      </div>
+      <div id="chat-window" class="chat-window"></div>
+      <div class="chat-input-row">
+        <textarea id="chat-input" rows="3" placeholder="Ask your model a question..."></textarea>
+        <button id="send-btn">Send</button>
+      </div>
+    </section>
+
+    <section class="panel logs-panel">
+      <h2>Raw Request</h2>
+      <pre id="raw-request" class="log-box"></pre>
+      <h2>Raw Response</h2>
+      <pre id="raw-response" class="log-box"></pre>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
