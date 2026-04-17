@@ -227,6 +227,22 @@ button.secondary:hover {
   border: 1px solid #334155;
 }
 
+.stream-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.stream-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+}
+
 @media (max-width: 1080px) {
   main {
     grid-template-columns: 1fr;

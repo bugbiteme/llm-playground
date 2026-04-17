@@ -17,6 +17,120 @@ console.log(`[SERVER] TLS certificate validation: ${rejectUnauthorized ? 'ENABLE
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(process.cwd(), 'public')));
 
+app.post('/api/chat-stream', async (req, res) => {
+  const { url, headers, body } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ error: 'Missing url in request body' });
+  }
+  if (!body || typeof body !== 'object') {
+    return res.status(400).json({ error: 'Missing or invalid body in request body' });
+  }
+
+  try {
+    const headerList = Array.isArray(headers) ? headers : [];
+    const requestHeaders = {};
+
+    headerList.forEach(({ key, value }) => {
+      if (key && value) {
+        requestHeaders[key] = value;
+      }
+    });
+
+    const normalizedHeaders = Object.keys(requestHeaders).reduce((acc, name) => {
+      acc[name.toLowerCase()] = requestHeaders[name];
+      return acc;
+    }, {});
+
+    if (!normalizedHeaders['content-type']) {
+      normalizedHeaders['content-type'] = 'application/json';
+    }
+
+    const requestBody = { ...body, stream: true };
+
+    const fetchOptions = {
+      method: 'POST',
+      headers: normalizedHeaders,
+      body: JSON.stringify(requestBody),
+    };
+
+    if (url.startsWith('https')) {
+      fetchOptions.agent = httpsAgent;
+    }
+
+    console.log('[/api/chat-stream] Sending streaming request to:', url);
+
+    const response = await fetch(url, fetchOptions);
+
+    if (!response.ok) {
+      res.status(response.status).json({ error: `Stream request failed with status ${response.status}` });
+      return;
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+
+        for (let i = 0; i < lines.length - 1; i++) {
+          const line = lines[i].trim();
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') {
+              res.write('data: [DONE]\n\n');
+            } else {
+              try {
+                const parsed = JSON.parse(data);
+                res.write(`data: ${JSON.stringify(parsed)}\n\n`);
+              } catch (err) {
+                res.write(`data: ${data}\n\n`);
+              }
+            }
+          }
+        }
+        buffer = lines[lines.length - 1];
+      }
+
+      if (buffer.trim()) {
+        const line = buffer.trim();
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') {
+            res.write('data: [DONE]\n\n');
+          } else {
+            try {
+              const parsed = JSON.parse(data);
+              res.write(`data: ${JSON.stringify(parsed)}\n\n`);
+            } catch (err) {
+              res.write(`data: ${data}\n\n`);
+            }
+          }
+        }
+      }
+
+      res.end();
+    } catch (error) {
+      console.error('[/api/chat-stream] Stream error:', error.message);
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+  } catch (error) {
+    console.error('[/api/chat-stream] Request failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/chat', async (req, res) => {
   const { url, headers, body } = req.body;
 

@@ -140,6 +140,7 @@ async function sendMessage() {
     return;
   }
 
+  const useStreaming = document.getElementById('stream-mode').checked;
   const headers = getHeaders();
   const requestData = {
     url: endpoint,
@@ -155,27 +156,148 @@ async function sendMessage() {
   rawResponseEl.textContent = 'Waiting for model response...';
 
   try {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestData),
-    });
-
-    const responseData = await response.json();
-    setRawContent(rawResponseEl, responseData);
-
-    if (!response.ok) {
-      appendChatMessage('assistant', `Request failed: ${responseData.error || response.statusText}`);
-      return;
+    if (useStreaming) {
+      await sendStreamingMessage(requestData);
+    } else {
+      await sendNonStreamingMessage(requestData);
     }
-
-    const assistantText = getAssistantText(responseData.body);
-    messages.push({ role: 'assistant', content: assistantText });
-    appendChatMessage('assistant', assistantText);
   } catch (err) {
     setRawContent(rawResponseEl, { error: err.message });
     appendChatMessage('assistant', `Network error: ${err.message}`);
   }
+}
+
+async function sendNonStreamingMessage(requestData) {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestData),
+  });
+
+  const responseData = await response.json();
+  setRawContent(rawResponseEl, responseData);
+
+  if (!response.ok) {
+    appendChatMessage('assistant', `Request failed: ${responseData.error || response.statusText}`);
+    return;
+  }
+
+  const assistantText = getAssistantText(responseData.body);
+  messages.push({ role: 'assistant', content: assistantText });
+  appendChatMessage('assistant', assistantText);
+}
+
+async function sendStreamingMessage(requestData) {
+  const response = await fetch('/api/chat-stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    appendChatMessage('assistant', `Request failed: ${error.error || response.statusText}`);
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let assistantText = '';
+
+  const chatMessage = document.createElement('div');
+  chatMessage.className = 'chat-message assistant';
+
+  const label = document.createElement('div');
+  label.className = 'chat-role';
+  label.textContent = 'Assistant';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble';
+  bubble.textContent = '';
+
+  chatMessage.append(label, bubble);
+  chatWindow.appendChild(chatMessage);
+
+  const responseLog = {};
+
+  try {
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+
+      for (let i = 0; i < lines.length - 1; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') {
+            // Streaming complete
+          } else {
+            try {
+              const parsed = JSON.parse(data);
+              responseLog[Object.keys(responseLog).length] = parsed;
+
+              const content = getStreamedContent(parsed);
+              if (content) {
+                assistantText += content;
+                bubble.textContent = assistantText;
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+              }
+            } catch (err) {
+              // Skip malformed JSON
+            }
+          }
+        }
+      }
+      buffer = lines[lines.length - 1];
+    }
+
+    if (buffer.trim()) {
+      const line = buffer.trim();
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6);
+        if (data !== '[DONE]') {
+          try {
+            const parsed = JSON.parse(data);
+            const content = getStreamedContent(parsed);
+            if (content) {
+              assistantText += content;
+              bubble.textContent = assistantText;
+            }
+          } catch (err) {
+            // Skip malformed JSON
+          }
+        }
+      }
+    }
+
+    messages.push({ role: 'assistant', content: assistantText });
+    setRawContent(rawResponseEl, responseLog);
+  } catch (error) {
+    bubble.textContent = assistantText || `Error: ${error.message}`;
+    setRawContent(rawResponseEl, { error: error.message });
+  }
+}
+
+function getStreamedContent(chunk) {
+  if (!chunk || typeof chunk !== 'object') return '';
+
+  if (chunk.choices && Array.isArray(chunk.choices) && chunk.choices[0]) {
+    const choice = chunk.choices[0];
+    if (choice.delta?.content) return choice.delta.content;
+    if (choice.text) return choice.text;
+  }
+
+  if (chunk.output && Array.isArray(chunk.output) && chunk.output[0]) {
+    const output = chunk.output[0];
+    if (output.delta?.content) return output.delta.content;
+    if (typeof output.content === 'string') return output.content;
+  }
+
+  return '';
 }
 
 function resetChat() {
