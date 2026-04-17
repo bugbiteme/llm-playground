@@ -59,7 +59,9 @@ main {
 
 .logs-panel {
   grid-column: 1 / -1;
-  display: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
 
 .logs-panel h2 {
