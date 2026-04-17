@@ -29,7 +29,7 @@ header p {
 
 main {
   display: grid;
-  grid-template-columns: 420px 1fr;
+  grid-template-columns: 500px 1fr;
   gap: 16px;
   padding: 16px;
   height: calc(100vh - 140px);
