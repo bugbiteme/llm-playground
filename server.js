@@ -1,8 +1,14 @@
 const express = require('express');
 const path = require('path');
+const https = require('https');
 
 const app = express();
 const port = process.env.PORT || 8080;
+
+// Create HTTPS agent that can be configured via env vars
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: process.env.NODE_TLS_REJECT_UNAUTHORIZED !== '0',
+});
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(process.cwd(), 'public')));
@@ -36,11 +42,20 @@ app.post('/api/chat', async (req, res) => {
       normalizedHeaders['content-type'] = 'application/json';
     }
 
-    const response = await fetch(url, {
+    const fetchOptions = {
       method: 'POST',
       headers: normalizedHeaders,
       body: JSON.stringify(body),
-    });
+    };
+
+    if (url.startsWith('https')) {
+      fetchOptions.agent = httpsAgent;
+    }
+
+    console.log('[/api/chat] Sending request to:', url);
+    console.log('[/api/chat] Headers:', normalizedHeaders);
+
+    const response = await fetch(url, fetchOptions);
 
     const responseText = await response.text();
     let responseBody;
@@ -64,17 +79,21 @@ app.post('/api/chat', async (req, res) => {
       rawResponse: { status: response.status, headers: responseHeaders, body: responseBody },
     });
   } catch (error) {
+    const cause = error.cause || {};
     console.error('[/api/chat] Request failed:', {
       url,
       errorMessage: error.message,
       errorCode: error.code,
+      causeMessage: cause.message,
+      causeCode: cause.code,
       errorStack: error.stack,
     });
 
     res.status(500).json({
       error: `Request failed: ${error.message}`,
-      errorCode: error.code,
-      details: error.message,
+      cause: cause.message || error.message,
+      errorCode: error.code || cause.code,
+      details: `${error.message} (${cause.code || 'unknown'})`,
       rawRequest: { url, headers, body },
     });
   }
