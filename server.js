@@ -64,8 +64,17 @@ app.post('/api/chat', async (req, res) => {
       rawResponse: { status: response.status, headers: responseHeaders, body: responseBody },
     });
   } catch (error) {
+    console.error('[/api/chat] Request failed:', {
+      url,
+      errorMessage: error.message,
+      errorCode: error.code,
+      errorStack: error.stack,
+    });
+
     res.status(500).json({
-      error: error.message,
+      error: `Request failed: ${error.message}`,
+      errorCode: error.code,
+      details: error.message,
       rawRequest: { url, headers, body },
     });
   }
