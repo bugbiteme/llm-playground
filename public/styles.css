@@ -28,9 +28,10 @@ header p {
 
 main {
   display: grid;
-  grid-template-columns: minmax(320px, 380px) minmax(360px, 1fr);
+  grid-template-columns: 280px 1fr;
   gap: 20px;
   padding: 24px;
+  height: calc(100vh - 180px);
 }
 
 .panel {
@@ -44,20 +45,20 @@ main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
+  max-height: 100%;
 }
 
 .chat-panel {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: auto;
+  height: 100%;
 }
 
 .logs-panel {
   grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  display: none;
 }
 
 .logs-panel h2 {
@@ -168,7 +169,7 @@ button.secondary:hover {
   border: 1px solid #334155;
   border-radius: 16px;
   background: #020617;
-  max-height: 380px;
+  min-height: 200px;
 }
 
 .chat-message {
@@ -224,9 +225,11 @@ button.secondary:hover {
 @media (max-width: 1080px) {
   main {
     grid-template-columns: 1fr;
+    height: auto;
   }
 
   .logs-panel {
+    display: grid;
     grid-template-columns: 1fr;
   }
 }

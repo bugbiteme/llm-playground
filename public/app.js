@@ -187,6 +187,7 @@ function resetChat() {
 
 function init() {
   createHeaderRow();
+  createHeaderRow('Authorization', 'APIKEY my-own-custom-key');
 
   document.getElementById('add-header').addEventListener('click', () => createHeaderRow('', ''));
   sendBtn.addEventListener('click', sendMessage);
