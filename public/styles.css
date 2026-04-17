@@ -90,6 +90,7 @@ button {
   background: #020617;
   color: #e2e8f0;
   font: inherit;
+  min-width: 0;
 }
 
 input,
@@ -144,8 +145,14 @@ button.secondary:hover {
 
 .header-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 44px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
   gap: 10px;
+  align-items: center;
+}
+
+.header-row input {
+  min-width: 0;
+  width: 100%;
 }
 
 .add-header-button,
