@@ -59,8 +59,15 @@ app.post('/api/chat-stream', async (req, res) => {
     }
 
     console.log('[/api/chat-stream] Sending streaming request to:', url);
+    console.log('[/api/chat-stream] Request body:', requestBody);
 
     const response = await fetch(url, fetchOptions);
+
+    console.log('[/api/chat-stream] Response status:', response.status);
+    console.log('[/api/chat-stream] Response headers:', {
+      contentType: response.headers.get('content-type'),
+      transferEncoding: response.headers.get('transfer-encoding'),
+    });
 
     if (!response.ok) {
       res.status(response.status).json({ error: `Stream request failed with status ${response.status}` });
@@ -74,13 +81,18 @@ app.post('/api/chat-stream', async (req, res) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let chunkCount = 0;
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        chunkCount++;
+        const chunk = decoder.decode(value, { stream: true });
+        console.log(`[/api/chat-stream] Chunk ${chunkCount}: ${chunk.length} bytes`);
+        
+        buffer += chunk;
         const lines = buffer.split('\n');
 
         for (let i = 0; i < lines.length - 1; i++) {
@@ -119,6 +131,7 @@ app.post('/api/chat-stream', async (req, res) => {
         }
       }
 
+      console.log(`[/api/chat-stream] Stream complete after ${chunkCount} chunks`);
       res.end();
     } catch (error) {
       console.error('[/api/chat-stream] Stream error:', error.message);

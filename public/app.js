@@ -195,8 +195,12 @@ async function sendStreamingMessage(requestData) {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    appendChatMessage('assistant', `Request failed: ${error.error || response.statusText}`);
+    try {
+      const error = await response.json();
+      appendChatMessage('assistant', `Request failed: ${error.error || response.statusText}`);
+    } catch {
+      appendChatMessage('assistant', `Request failed: ${response.statusText}`);
+    }
     return;
   }
 
@@ -213,12 +217,13 @@ async function sendStreamingMessage(requestData) {
 
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble';
-  bubble.textContent = '';
+  bubble.textContent = 'Streaming...';
 
   chatMessage.append(label, bubble);
   chatWindow.appendChild(chatMessage);
 
   const responseLog = {};
+  let streamedChunks = 0;
 
   try {
     let buffer = '';
@@ -234,11 +239,12 @@ async function sendStreamingMessage(requestData) {
         if (line.startsWith('data: ')) {
           const data = line.slice(6);
           if (data === '[DONE]') {
-            // Streaming complete
+            console.log('[Stream] Received [DONE]');
           } else {
             try {
               const parsed = JSON.parse(data);
-              responseLog[Object.keys(responseLog).length] = parsed;
+              streamedChunks++;
+              responseLog[streamedChunks] = parsed;
 
               const content = getStreamedContent(parsed);
               if (content) {
@@ -247,7 +253,7 @@ async function sendStreamingMessage(requestData) {
                 chatWindow.scrollTop = chatWindow.scrollHeight;
               }
             } catch (err) {
-              // Skip malformed JSON
+              console.log('[Stream] Skipped malformed JSON:', data);
             }
           }
         }
@@ -262,23 +268,33 @@ async function sendStreamingMessage(requestData) {
         if (data !== '[DONE]') {
           try {
             const parsed = JSON.parse(data);
+            streamedChunks++;
+            responseLog[streamedChunks] = parsed;
             const content = getStreamedContent(parsed);
             if (content) {
               assistantText += content;
               bubble.textContent = assistantText;
             }
           } catch (err) {
-            // Skip malformed JSON
+            console.log('[Stream] Skipped malformed JSON:', data);
           }
         }
       }
     }
 
-    messages.push({ role: 'assistant', content: assistantText });
+    if (assistantText.length === 0) {
+      bubble.textContent = '(No streaming content received - LLM might not support streaming)';
+      console.warn('[Stream] No content streamed. HTTPRoute may be buffering the response.');
+    } else {
+      console.log(`[Stream] Completed with ${streamedChunks} chunks`);
+    }
+
+    messages.push({ role: 'assistant', content: assistantText || '(Streaming ended without content)' });
     setRawContent(rawResponseEl, responseLog);
   } catch (error) {
-    bubble.textContent = assistantText || `Error: ${error.message}`;
-    setRawContent(rawResponseEl, { error: error.message });
+    console.error('[Stream] Error:', error);
+    bubble.textContent = `Error: ${error.message}`;
+    setRawContent(rawResponseEl, { error: error.message, streamedChunks });
   }
 }
 
