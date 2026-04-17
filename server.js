@@ -18,22 +18,27 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    const requestHeaders = new fetch.Headers();
     const headerList = Array.isArray(headers) ? headers : [];
+    const requestHeaders = {};
 
     headerList.forEach(({ key, value }) => {
       if (key && value) {
-        requestHeaders.set(key, value);
+        requestHeaders[key] = value;
       }
     });
 
-    if (!requestHeaders.has('content-type')) {
-      requestHeaders.set('content-type', 'application/json');
+    const normalizedHeaders = Object.keys(requestHeaders).reduce((acc, name) => {
+      acc[name.toLowerCase()] = requestHeaders[name];
+      return acc;
+    }, {});
+
+    if (!normalizedHeaders['content-type']) {
+      normalizedHeaders['content-type'] = 'application/json';
     }
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: requestHeaders,
+      headers: normalizedHeaders,
       body: JSON.stringify(body),
     });
 
