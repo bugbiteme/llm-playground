@@ -6,9 +6,13 @@ const app = express();
 const port = process.env.PORT || 8080;
 
 // Create HTTPS agent that can be configured via env vars
+const rejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED !== '0';
 const httpsAgent = new https.Agent({
-  rejectUnauthorized: process.env.NODE_TLS_REJECT_UNAUTHORIZED !== '0',
+  rejectUnauthorized,
 });
+
+console.log(`[SERVER] NODE_TLS_REJECT_UNAUTHORIZED=${process.env.NODE_TLS_REJECT_UNAUTHORIZED}`);
+console.log(`[SERVER] TLS certificate validation: ${rejectUnauthorized ? 'ENABLED (strict)' : 'DISABLED (accept self-signed certs)'}`);
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(process.cwd(), 'public')));
