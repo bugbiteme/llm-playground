@@ -28,7 +28,7 @@ header p {
 
 main {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: minmax(320px, 380px) minmax(360px, 1fr);
   gap: 20px;
   padding: 24px;
 }
@@ -50,7 +50,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 600px;
+  min-height: auto;
 }
 
 .logs-panel {
@@ -136,13 +136,19 @@ button.secondary:hover {
   gap: 10px;
 }
 
+.add-header-button,
 .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #0f172a;
   border: 1px solid #334155;
   color: #f8fafc;
+  background: #0f172a;
+}
+
+.add-header-button {
+  padding: 10px 14px;
+  border-radius: 14px;
 }
 
 .params-grid {
@@ -162,6 +168,7 @@ button.secondary:hover {
   border: 1px solid #334155;
   border-radius: 16px;
   background: #020617;
+  max-height: 380px;
 }
 
 .chat-message {
