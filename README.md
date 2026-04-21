@@ -25,6 +25,12 @@ npm install
 npm start
 ```
 
+If you hit a TLS error locally, just run:
+
+```bash
+NODE_TLS_REJECT_UNAUTHORIZED=0 npm start
+```
+
 3. Open `http://localhost:8080`
 
 ## Container deployment
