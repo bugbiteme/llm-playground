@@ -17,6 +17,18 @@ console.log(`[SERVER] TLS certificate validation: ${rejectUnauthorized ? 'ENABLE
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(process.cwd(), 'public')));
 
+const RLP_URL = process.env.RLP_STATUS_URL || 'http://llm-policy-monitor:8080/v1/api/rlpstatus';
+
+app.get('/api/rlpstatus', async (_req, res) => {
+  try {
+    const response = await fetch(RLP_URL);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
 app.post('/api/chat-stream', async (req, res) => {
   const { url, headers, body } = req.body;
 

@@ -316,6 +316,79 @@ function getStreamedContent(chunk) {
   return '';
 }
 
+// ── Rate Limit Monitor ──────────────────────────────────────────────────────
+
+const rlpContainer = document.getElementById('rlp-table-container');
+const rlpIndicator = document.getElementById('rlp-status-indicator');
+
+function renderRlpTable(limits) {
+  if (!Array.isArray(limits) || limits.length === 0) {
+    rlpContainer.innerHTML = '<p class="rlp-empty">No active rate limits</p>';
+    return;
+  }
+
+  const rows = limits.map((entry) => {
+    const name = entry.limit?.name ?? '—';
+    const namespace = entry.limit?.namespace ?? '—';
+    const max = entry.limit?.max_value ?? 0;
+    const windowSec = entry.limit?.seconds ?? 0;
+    const expiresIn = entry.expires_in_seconds ?? 0;
+    const remaining = entry.remaining;
+    const userId = entry.set_variables
+      ? Object.values(entry.set_variables)[0] ?? '—'
+      : '—';
+
+    // remaining is a uint64 — values near max uint64 mean "unlimited / unused"
+    const remainingBig = BigInt(remaining);
+    const isUnlimited = remainingBig > BigInt(Number.MAX_SAFE_INTEGER);
+    const remainingDisplay = isUnlimited ? '∞' : String(remaining);
+
+    let usedPct = 0;
+    let barClass = '';
+    if (!isUnlimited && max > 0) {
+      usedPct = Math.min(100, Math.round(((max - Number(remaining)) / max) * 100));
+      barClass = usedPct >= 90 ? 'critical' : usedPct >= 70 ? 'warn' : '';
+    }
+
+    return `<tr>
+      <td>${name}</td>
+      <td>${namespace}</td>
+      <td>${userId}</td>
+      <td>${max.toLocaleString()}</td>
+      <td>${remainingDisplay}</td>
+      <td>${windowSec}s</td>
+      <td>${expiresIn}s</td>
+      <td class="rlp-bar-cell">
+        <div class="rlp-bar-bg">
+          <div class="rlp-bar-fill ${barClass}" style="width:${usedPct}%"></div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  rlpContainer.innerHTML = `<table class="rlp-table">
+    <thead><tr>
+      <th>Name</th><th>Namespace</th><th>User</th>
+      <th>Max</th><th>Remaining</th><th>Window</th><th>Expires</th><th>Usage</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+async function pollRlpStatus() {
+  try {
+    const res = await fetch('/api/rlpstatus');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderRlpTable(data);
+    rlpIndicator.className = 'rlp-indicator live';
+  } catch {
+    rlpIndicator.className = 'rlp-indicator error';
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 function resetChat() {
   messages = [];
   chatWindow.innerHTML = '';
@@ -336,6 +409,9 @@ function init() {
       sendMessage();
     }
   });
+
+  pollRlpStatus();
+  setInterval(pollRlpStatus, 1000);
 }
 
 init();
