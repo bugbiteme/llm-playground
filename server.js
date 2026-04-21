@@ -46,7 +46,7 @@ app.post('/api/chat-stream', async (req, res) => {
       normalizedHeaders['content-type'] = 'application/json';
     }
 
-    const requestBody = { ...body, stream: true };
+    const requestBody = { ...body, stream: true, stream_options: { include_usage: true } };
 
     const fetchOptions = {
       method: 'POST',
