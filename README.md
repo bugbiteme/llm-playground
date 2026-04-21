@@ -70,4 +70,3 @@ A simple deployment manifest is available under `k8s/deployment.yaml`.
 - Enter `Content-Type: application/json` in the header section if you want it persisted; it is also applied automatically by the proxy.
 - Use the extra JSON options field for OpenAI-style request parameters not exposed by the form.
 
-#test
