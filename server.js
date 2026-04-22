@@ -14,6 +14,7 @@ const httpsAgent = new https.Agent({
 console.log(`[SERVER] NODE_TLS_REJECT_UNAUTHORIZED=${process.env.NODE_TLS_REJECT_UNAUTHORIZED}`);
 console.log(`[SERVER] TLS certificate validation: ${rejectUnauthorized ? 'ENABLED (strict)' : 'DISABLED (accept self-signed certs)'}`);
 
+app.set('trust proxy', true);
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(process.cwd(), 'public')));
 
@@ -56,6 +57,10 @@ app.post('/api/chat-stream', async (req, res) => {
 
     if (!normalizedHeaders['content-type']) {
       normalizedHeaders['content-type'] = 'application/json';
+    }
+
+    if (!normalizedHeaders['x-forwarded-for']) {
+      normalizedHeaders['x-forwarded-for'] = req.ip;
     }
 
     const requestBody = { ...body, stream: true, stream_options: { include_usage: true } };
@@ -183,6 +188,10 @@ app.post('/api/chat', async (req, res) => {
 
     if (!normalizedHeaders['content-type']) {
       normalizedHeaders['content-type'] = 'application/json';
+    }
+
+    if (!normalizedHeaders['x-forwarded-for']) {
+      normalizedHeaders['x-forwarded-for'] = req.ip;
     }
 
     const fetchOptions = {
