@@ -396,6 +396,16 @@ function resetChat() {
   rawResponseEl.textContent = '';
 }
 
+function initThemeToggle() {
+  const toggle = document.getElementById('theme-toggle');
+  toggle.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  });
+}
+
 function init() {
   createHeaderRow();
   createHeaderRow('Authorization', 'APIKEY my-own-custom-key');
@@ -410,6 +420,7 @@ function init() {
     }
   });
 
+  initThemeToggle();
   pollRlpStatus();
   setInterval(pollRlpStatus, 1000);
 }
