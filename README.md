@@ -62,7 +62,12 @@ oc expose svc/llm-chat-client
 
 ## Kubernetes manifest
 
-A simple deployment manifest is available under `k8s/deployment.yaml`.
+Deployment manifests (including ArgoCD) can be found at
+https://github.com/bugbiteme/llm-playground-manifests
+
+Note there is a dependancy the llm-policy-monitor as well
+https://github.com/bugbiteme/llm-policy-monitor
+
 
 ## Notes
 
