@@ -378,6 +378,7 @@ button.secondary:hover {
   border-radius: 16px;
   background: var(--chat-window-bg);
   min-height: 200px;
+  max-height: calc(100vh - 340px);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
