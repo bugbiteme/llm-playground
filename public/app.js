@@ -327,7 +327,14 @@ function renderRlpTable(limits) {
     return;
   }
 
-  const rows = limits.map((entry) => {
+  const priority = { gold: 0, free: 1 };
+  const sorted = [...limits].sort((a, b) => {
+    const pa = priority[a.limit?.name] ?? 2;
+    const pb = priority[b.limit?.name] ?? 2;
+    return pa - pb;
+  });
+
+  const rows = sorted.map((entry) => {
     const name = entry.limit?.name ?? '—';
     const namespace = entry.limit?.namespace ?? '—';
     const max = entry.limit?.max_value ?? 0;
